@@ -31,6 +31,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const headers = { ...req.headers };
         delete headers.host;
+        delete headers['accept-encoding'];
 
         let body = undefined;
         if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -48,12 +49,17 @@ const server = http.createServer(async (req, res) => {
 
         const resHeaders = {};
         upstreamRes.headers.forEach((val, key) => {
-          resHeaders[key] = val;
+          const lower = key.toLowerCase();
+          if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(lower)) {
+            resHeaders[key] = val;
+          }
         });
 
-        res.writeHead(upstreamRes.status, resHeaders);
         const data = await upstreamRes.arrayBuffer();
-        res.end(Buffer.from(data));
+        const buffer = Buffer.from(data);
+        resHeaders['content-length'] = buffer.length;
+        res.writeHead(upstreamRes.status, resHeaders);
+        res.end(buffer);
         return;
       } catch (upstreamErr) {
         console.error('Error forwarding request to fixtrack_source service:', upstreamErr.message);
