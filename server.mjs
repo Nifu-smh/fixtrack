@@ -2,6 +2,7 @@ import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { staticAssets } from './static_assets.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const types = {
@@ -25,7 +26,7 @@ const server = http.createServer(async (req, res) => {
     const reqUrl = new URL(req.url, 'http://localhost');
     const pathname = decodeURIComponent(reqUrl.pathname);
 
-    // Forward API requests to internal backend service via service binding
+    // 1. Forward API requests to internal backend service via service binding
     if (pathname.startsWith('/api/') || pathname === '/api') {
       const targetUrl = getBackendTarget(req.url);
       try {
@@ -73,7 +74,33 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // Static file serving for SPA
+    // 2. Fast in-memory static assets (works in all serverless / container environments)
+    const normalizedPath = pathname === '/' ? '/index.html' : pathname;
+    if (staticAssets[normalizedPath]) {
+      const ext = path.extname(normalizedPath);
+      res.writeHead(200, {
+        'Content-Type': types[ext] || 'application/octet-stream',
+        'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'same-origin'
+      });
+      res.end(staticAssets[normalizedPath]);
+      return;
+    }
+
+    // 3. Client-side SPA routing fallback for extensionless deep links (e.g. /admin, /login)
+    if (!path.extname(pathname) && staticAssets['/index.html']) {
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'same-origin'
+      });
+      res.end(staticAssets['/index.html']);
+      return;
+    }
+
+    // 4. Filesystem fallback
     let file = path.resolve(root, '.' + pathname);
     if (!file.startsWith(root + path.sep) && file !== root) {
       res.writeHead(403);

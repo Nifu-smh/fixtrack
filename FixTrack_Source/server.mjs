@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { seed, locations, categories, issueTypes } from './data.js';
 import { STATUSES, PRIORITIES, metrics, findDuplicates } from './domain.js';
 import * as dbApi from './supabase.js';
+import { staticAssets } from './static_assets.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const types = {
@@ -166,6 +167,20 @@ const server = http.createServer(async (req, res) => {
         if (live && live.technicians) technicians = live.technicians;
       } catch {}
       return sendJson(200, { success: true, count: technicians.length, data: technicians });
+    }
+
+    // 6. In-memory static assets
+    const normalizedPath = pathname === '/' ? '/index.html' : pathname;
+    if (staticAssets && staticAssets[normalizedPath]) {
+      const ext = path.extname(normalizedPath);
+      res.writeHead(200, {
+        'Content-Type': types[ext] || 'application/octet-stream',
+        'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'same-origin'
+      });
+      res.end(staticAssets[normalizedPath]);
+      return;
     }
 
     // Static files or fallback
