@@ -1,98 +1,95 @@
-# FixTrack
+# FixTrack — Smart Campus Maintenance & Repair Management System
 
-A complete local website based on the FixTrack campus maintenance blueprint.
+> **Report. Repair. Resolve.**  
+> A full-stack campus maintenance operations platform that catches duplicate complaints, routes repairs to specialized technicians, and tracks repair accountability through to verified closure.
 
-## Open the website
+---
 
-Double-click **FixTrack.html** or **Start-FixTrack.cmd**. No installation, account, internet connection or development server is required. Start at the homepage, select **Explore FixTrack**, and choose a portal. Use the profile menu at the bottom of the sidebar to switch roles.
+## 🚀 Live Connections & Services
 
-Direct views in the portable file use hash navigation: `FixTrack.html#/admin`, `FixTrack.html#/dashboard`, and `FixTrack.html#/technician`.
+- **GitHub Repository**: [https://github.com/Nifu-smh/fixtrack](https://github.com/Nifu-smh/fixtrack)
+- **Supabase Backend Project**: `fixtrack` (Region: `ap-south-1`)
+  - Project URL: `https://mrrcwwyqoscsityitzir.supabase.co`
+  - Authentication: Supabase Auth (Email + Password, Google / Gmail OAuth)
+  - Database: PostgreSQL 17 with Row Level Security (RLS) & Realtime Synchronization
+- **Vercel Deployment**: Configured via `vercel.json` with SPA Edge routing
 
-The website includes sample data and saves changes in this browser's local storage. An offline preview is not authenticated: selecting a role demonstrates its workflow and does not enforce permissions. Nothing in this version sends reports online. Do not enter sensitive information into this demonstration.
+---
 
-## Complete page structure
+## 🔑 Real Pre-Configured Test Accounts (in Supabase Auth)
 
-| Portal | Page | Source route |
-| --- | --- | --- |
-| Public | Homepage | `/` |
-| Public | Login / local role selection | `/login` |
-| Reporter | Dashboard | `/dashboard` |
-| Reporter | Report issue: location, details, review | `/report/new` |
-| Reporter | My reports | `/my-reports` |
-| Reporter | Report details | `/my-reports/:id` |
-| Shared | Campus issue directory | `/issues` |
-| Shared | Campus issue and repair details | `/issues/:id` |
-| Shared | Profile | `/profile` |
-| Shared | Notifications | `/notifications` |
-| Shared | Help centre | `/help` |
-| Technician | My assigned jobs | `/technician` |
-| Technician | Work order details and repair updates | `/technician/jobs/:id` |
-| Technician | Completed repair history | `/technician/history` |
-| Admin | Maintenance overview | `/admin` |
-| Admin | Incoming reports and triage | `/admin/reports` |
-| Admin | Report review / duplicate confirmation | `/admin/reports/:id` |
-| Admin | All maintenance cases | `/admin/cases` |
-| Admin | Case detail, assignment and verification | `/admin/cases/:id` |
-| Admin | Technician directory and workload | `/admin/technicians` |
-| Admin | Locations and asset directory | `/admin/assets` |
-| Admin | Reports and analytics | `/admin/analytics` |
-| Admin | Campus, notification and workflow settings | `/admin/settings` |
-| Shared | Missing page or record | Fallback |
+The system is seeded with real authenticated campus accounts in Supabase Auth & PostgreSQL `profiles` table. Any of these can be used immediately:
 
-## Working local features
+| Role | Name | Email | Password | Responsibility |
+| --- | --- | --- | --- | --- |
+| **Maintenance Admin** | Campus Admin | `admin@fixtrack.campus` | `FixTrack@2026` | Triage duplicate reports, assign technicians, prioritize cases, verify & close repairs, analytics |
+| **Technician (IT)** | Arjun Menon | `arjun.tech@fixtrack.campus` | `FixTrack@2026` | View assigned IT work orders, start repair, submit completion note |
+| **Technician (Electrical)** | Faisal Rahman | `faisal.tech@fixtrack.campus` | `FixTrack@2026` | Electrical repairs, fan and power outages |
+| **Technician (Plumbing)** | Anjali Nair | `anjali.tech@fixtrack.campus` | `FixTrack@2026` | Plumbing leaks and washbasin repairs |
+| **Student / Reporter** | Nifu (Student Reporter) | `student@fixtrack.campus` | `FixTrack@2026` | Submit complaints, track status, verify completed fixes |
 
-- Three responsive portals with shared navigation, mobile menu, keyboard search, profile, help and notifications.
-- Three-step issue reporting with required fields, safety flag and optional image (PNG/JPEG/WebP, up to 1 MB).
-- Duplicate suggestions based on asset plus fault type; without an asset, room/category/type and description overlap are required. Suggestions do not merge automatically.
-- Admin confirms links or creates distinct cases. Original reports are preserved.
-- Assignment to available technicians, priority changes, progress notes, completed repair notes, verification and reopening.
-- All linked reports read status from their shared case.
-- Status and category filtering, search, table/card views, CSV exports, local workspace JSON backup and confirmed demo reset.
-- Technician availability, additional team records, additional asset records and per-asset repair histories.
-- Dashboard and analytics numbers derive from the current dataset. The two activity periods use report and completion timestamps.
-- All pages work without external libraries, remote fonts, images, or API requests.
+> **Google / Gmail Sign-In**: Users can also click **"Continue with Google / Gmail"** on `/login` to sign in using their Google account. An auto-provisioning database trigger creates a profile in `public.profiles` with the `reporter` role automatically.
 
-## Try the full workflow
+---
 
-1. In **Student / staff**, report a display failure for `PC-14` in Academic Block / Computer Lab 1.
-2. Switch to **Maintenance admin** and open Incoming reports. The new report should suggest `FIX-001` as a strong match.
-3. Confirm the link. The original report remains in My reports.
-4. Report a **keyboard failure** for `PC-14`. It should not suggest the display-failure case. Create a separate case and assign it to Arjun Menon.
-5. Switch to **Maintenance technician**, open that case, start repair, then mark complete with a repair note.
-6. Switch to the reporter or admin. Verify and close the repair, or reopen it with a reason.
-7. Refresh. The case, linked reports and timeline should retain the changes.
+## 🏛 Database Schema (Supabase PostgreSQL)
 
-`FIX-004` starts in the awaiting-verification state. `RPT-013` starts as a duplicate suggestion; `RPT-015` is a different fault on the same asset.
+All operational data is persisted in Supabase with RLS policies:
 
-## Edit the source
+1. `profiles`: `id` (references `auth.users`), `email`, `name`, `role` (`admin` | `technician` | `reporter`), `department`, `phone`, `skill`, `available`, `initials`, `color`.
+2. `locations`: `id`, `building`, `room`, `floor` (Pre-seeded with Computer Labs 1 & 2, Library, Boys Hostel, Classroom 204, Cafeteria, Auditorium, Admin Office).
+3. `assets`: `id`, `name`, `category`, `location_id`, `health` (Pre-seeded with Dell OptiPlex PC-14, HP ProDesk PC-08, Epson Projector PRJ-04, Daikin AC-02, Fan FAN-06, etc.).
+4. `maintenance_cases`: `id` (e.g. `FIX-001`), `title`, `description`, `category`, `issue_type`, `asset_id`, `location_id`, `priority`, `status`, `assigned_to`, `repair_note`, `created_at`, `updated_at`.
+5. `issue_reports`: `id` (e.g. `RPT-001`), `title`, `description`, `category`, `issue_type`, `asset_id`, `location_id`, `reporter_id`, `reporter_name`, `case_id`, `triaged`, `safety`, `photo_url`, `created_at`.
+6. `case_updates`: `id`, `case_id`, `actor_id`, `actor_name`, `action`, `note`, `created_at` (Full audit timeline).
+7. `campus_settings`: Campus name, SLA response thresholds, emergency safety contacts.
 
-Node.js 20+ is sufficient; no package installation is needed.
+---
+
+## ⚡ Core Technical Workflows
+
+### 1. Duplicate Detection Engine
+- **Strong Match**: Same Asset ID (`PC-14`) + Same Issue Type (`Display failure`) -> Suggests linking to existing active case (e.g. `#FIX-001`).
+- **Different Fault on Same Asset**: Same Asset ID (`PC-14`) + Different Issue Type (`Keyboard failure`) -> Kept as a separate case.
+- **Location-based Match**: When no Asset ID is given, matches based on Room + Category + Issue Type + semantic description overlap.
+- **Human Verification**: Potential duplicates are suggested to the admin; original reports are never lost or deleted when linked.
+
+### 2. Status Lifecycle & Accountability
+```
+[New] ──> [Triaged] ──> [Assigned] ──> [In Progress] ──> [Resolved] ──> [Closed]
+                                                               │            ▲
+                                                               └──[Reopened]┘
+```
+- **Assigned -> In Progress**: Only the assigned technician (or admin) can start the job.
+- **In Progress -> Resolved**: Technician marks repair complete with a mandatory repair note describing the fix and test evidence.
+- **Resolved -> Closed**: Admin or the student reporter verifies the physical repair and closes the loop.
+- **Resolved -> Reopened**: If the fault persists, it is reopened with explanation notes for the technician.
+
+---
+
+## 🛠 Local Development & Testing
 
 ```sh
+# Start local development server (http://127.0.0.1:4173)
 npm run dev
-# http://127.0.0.1:4173
 
-npm run check
+# Run all 45 automated domain & integration tests
 npm test
+
+# Check JavaScript syntax
+npm run check
+
+# Build single-file portable offline bundle (FixTrack.html)
 npm run build
 ```
 
-| File | Purpose |
-| --- | --- |
-| `app.js` | All pages, components, navigation and local interactions |
-| `styles.css` | Responsive teal, ivory and sage visual system |
-| `domain.js` | Matching, linking, status rules, derived metrics, safe export |
-| `data.js` | Fictional demo issues, equipment, technicians and locations |
-| `server.mjs` | Optional loopback-only development server with SPA fallback |
-| `build.mjs` | Produces the single portable `FixTrack.html` |
-| `tests/` | Domain, route-render and local workflow checks |
+---
 
-After editing source files, run `npm run build` to update the portable HTML file. Use the loopback development server for the most consistent local-storage behavior; file-origin persistence can vary with browser settings.
+## 🌐 Deploy to Vercel
 
-## Deferred online integration
-
-As requested, this deliverable is local and has not been published or pushed to GitHub. No Google authentication or shared cloud database is wired into the local website. A separate Supabase project named `fixtrack` was provisioned before the local-only instruction; it has no application schema or data from this build.
-
-Before online use, implement Supabase Auth and database tables, server-enforced roles and RLS, private attachment storage, real account invitations, configured campus emergency contacts, and deployment configuration. The role switcher must stay limited to an isolated demo and cannot serve as production authorization.
-
-Browser screenshots and visual interaction verification were blocked by the local computer-control service. Automated checks validate page rendering and workflow logic, not real browser layout.
+1. Import git repository: `https://github.com/Nifu-smh/fixtrack` in the [Vercel Dashboard](https://vercel.com/new).
+2. Configure Environment Variables in Vercel:
+   - `SUPABASE_URL`: `https://mrrcwwyqoscsityitzir.supabase.co`
+   - `SUPABASE_ANON_KEY`: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+   - `SUPABASE_PUBLISHABLE_KEY`: `sb_publishable_RIk1NNNbxPgaCRakDdugiA_lhqhCqKn`
+3. Click **Deploy**. Vercel will build and serve with zero additional configuration using `vercel.json` rewrites.
